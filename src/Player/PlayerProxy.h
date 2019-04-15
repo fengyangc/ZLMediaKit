@@ -38,6 +38,13 @@ using namespace toolkit;
 
 namespace mediakit {
 
+namespace Broadcast {
+//收到收到播放器代理播放结果
+	extern const char kBroadcastPlayerResultArgs[];
+#define BroadcastPlayerResultArgs const string &strVhost, const string &strApp, const string &strSrc, const int &iFailedCnt, int iRetryCount, const SockException &err
+
+} //namespace Broadcast
+	
 class PlayerProxy :public MediaPlayer,
 				   public std::enable_shared_from_this<PlayerProxy> ,
 				   public MediaSourceEvent{
