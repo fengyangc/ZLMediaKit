@@ -29,6 +29,7 @@
 #include "Util/mini.h"
 #include "Util/MD5.h"
 #include "Util/logger.h"
+#include "Util/NoticeCenter.h"
 
 using namespace toolkit;
 
@@ -61,6 +62,11 @@ static uint8_t s_mute_adts[] = {0xff, 0xf1, 0x6c, 0x40, 0x2d, 0x3f, 0xfc, 0x00, 
 #define MUTE_ADTS_DATA_LEN sizeof(s_mute_adts)
 #define MUTE_ADTS_DATA_MS 130
 
+namespace Broadcast {
+//收到收到播放器代理播放结果
+    const char kBroadcastPlayerResultArgs[] = "kBroadcastPlayerResultArgs";
+} //namespace Broadcast
+
 PlayerProxy::PlayerProxy(const string &strVhost,
                          const string &strApp,
                          const string &strSrc,
@@ -87,9 +93,15 @@ void PlayerProxy::play(const string &strUrlTmp) {
 			// 播放成功
 			*piFailedCnt = 0;//连续播放失败次数清0
 			strongSelf->onPlaySuccess();
+			NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastPlayerResultArgs, strongSelf->_strVhost,
+                                               strongSelf->_strApp, strongSelf->_strSrc, int(*piFailedCnt),
+                                               strongSelf->_iRetryCount, err);
 		}else if(*piFailedCnt < strongSelf->_iRetryCount || strongSelf->_iRetryCount < 0) {
 			// 播放失败，延时重试播放
 			strongSelf->rePlay(strUrlTmp,(*piFailedCnt)++);
+			NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastPlayerResultArgs, strongSelf->_strVhost,
+                                               strongSelf->_strApp, strongSelf->_strSrc, int(*piFailedCnt),
+                                               strongSelf->_iRetryCount, err);
 		}
 	});
 	setOnShutdown([weakSelf,strUrlTmp,piFailedCnt](const SockException &err) {
@@ -107,6 +119,9 @@ void PlayerProxy::play(const string &strUrlTmp) {
 		//播放异常中断，延时重试播放
 		if(*piFailedCnt < strongSelf->_iRetryCount || strongSelf->_iRetryCount < 0) {
 			strongSelf->rePlay(strUrlTmp,(*piFailedCnt)++);
+			NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastPlayerResultArgs, strongSelf->_strVhost,
+                                               strongSelf->_strApp, strongSelf->_strSrc, int(*piFailedCnt),
+                                               strongSelf->_iRetryCount, err);
 		}
 	});
 	MediaPlayer::play(strUrlTmp);
